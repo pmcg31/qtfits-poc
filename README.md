@@ -5,7 +5,7 @@
 Contains a proof of concept FITS file viewer implemented using the cftisio library and QT.
 
 It is unlikely I would have achieved success without [this code example](https://github.com/richmit/ex-CFITSIO/blob/master/fits2tga.c). The
-cfitsio documention does not really make things obvious. So, thank you Mitch Richling!
+[cfitsio documention](https://heasarc.gsfc.nasa.gov/docs/software/fitsio/c/c_user/cfitsio.html) does not really make things obvious. So, thank you Mitch Richling!
 
 There are times when I would just like to quickly take a look at a FITS image, and I have not yet found a simple tool for this. This project
 is the precursor to such a tool. Feature ideas so far include:
