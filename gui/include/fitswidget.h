@@ -12,7 +12,8 @@ class FITSWidget : public QWidget
     Q_OBJECT
 
 public:
-    class Info {
+    class Info
+    {
     public:
         int bitDepthEnum;
         char imageType[100];
@@ -24,7 +25,7 @@ public:
         long numPixels;
         char sizeAndColor[200];
         long fpixel[3];
-        double* imageArray;
+        double *imageArray;
         double maxPixelVal;
         double minPixelVal;
     };
@@ -35,53 +36,53 @@ public:
     QSize sizeHint() const override;
     QSize minimumSizeHint() const override;
 
-    const ELS::FITSImage* getImage() const;
+    const ELS::FITSImage *getImage() const;
 
 public slots:
-    void setFile(const char* filename);
+    void setFile(const char *filename);
 
 signals:
-    void fileChanged(const char* filename);
-    void fileFailed(const char* filename,
-                    const char* errText);
+    void fileChanged(const char *filename);
+    void fileFailed(const char *filename,
+                    const char *errText);
 
 protected:
     void paintEvent(QPaintEvent *event) override;
 
-    QImage* convertImage() const;
-    void convertU16MonoImage(QImage* qi,
+    QImage *convertImage() const;
+    void convertU16MonoImage(QImage *qi,
                              int width,
                              int height,
-                             const uint16_t* pixels) const;
-    void convertFloatMonoImage(QImage* qi,
+                             const uint16_t *pixels) const;
+    void convertFloatMonoImage(QImage *qi,
                                int width,
                                int height,
-                               const float* pixels) const;
-    void convertDoubleMonoImage(QImage* qi,
+                               const float *pixels) const;
+    void convertDoubleMonoImage(QImage *qi,
                                 int width,
                                 int height,
-                                const double* pixels) const;
-    void convertU16ColorImage(QImage* qi,
+                                const double *pixels) const;
+    void convertU16ColorImage(QImage *qi,
                               int width,
                               int height,
                               int chanAx,
-                              const uint16_t* pixels) const;
-    void convertFloatColorImage(QImage* qi,
+                              const uint16_t *pixels) const;
+    void convertFloatColorImage(QImage *qi,
                                 int width,
                                 int height,
                                 int chanAx,
-                                const float* pixels) const;
-    void convertDoubleColorImage(QImage* qi,
+                                const float *pixels) const;
+    void convertDoubleColorImage(QImage *qi,
                                  int width,
                                  int height,
                                  int chanAx,
-                                 const double* pixels) const;
+                                 const double *pixels) const;
 
 private:
     QSizePolicy _sizePolicy;
-    const char* _filename;
-    ELS::FITSImage* _fits;
-    QImage* _cacheImage;
+    const char *_filename;
+    ELS::FITSImage *_fits;
+    QImage *_cacheImage;
 };
 
 #endif // FITSWIDGET_H

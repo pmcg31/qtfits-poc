@@ -8,7 +8,10 @@
 #include "fitswidget.h"
 
 QT_BEGIN_NAMESPACE
-namespace Ui { class MainWindow; }
+namespace Ui
+{
+    class MainWindow;
+}
 QT_END_NAMESPACE
 
 class MainWindow : public QMainWindow
@@ -20,9 +23,9 @@ public:
     ~MainWindow();
 
 private:
-    void fitsFileChanged(const char* filename);
-    void fitsFileFailed(const char* filename,
-                        const char* errText);
+    void fitsFileChanged(const char *filename);
+    void fitsFileFailed(const char *filename,
+                        const char *errText);
 
 private:
     QWidget mainPane;

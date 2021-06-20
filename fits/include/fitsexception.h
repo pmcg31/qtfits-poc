@@ -5,22 +5,22 @@
 namespace ELS
 {
 
-class FITSException  : public std::exception
-{
-public:
-    FITSException(const char* errText);
-    virtual ~FITSException();
+    class FITSException : public std::exception
+    {
+    public:
+        FITSException(const char *errText);
+        virtual ~FITSException();
 
-    virtual const char* getErrText() const;
+        virtual const char *getErrText() const;
 
-protected:
-    FITSException();
+    protected:
+        FITSException();
 
-protected:
-    static const int g_bufSize = 200;
+    protected:
+        static const int g_bufSize = 200;
 
-protected:
-    char _errText[g_bufSize];
-};
+    protected:
+        char _errText[g_bufSize];
+    };
 
 }

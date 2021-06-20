@@ -5,20 +5,18 @@
 namespace ELS
 {
 
-FITSTantrum::FITSTantrum(int status)
-    : FITSException()
-    , _status(status)
-{
-    fits_get_errstatus(_status, _errText);
-}
+    FITSTantrum::FITSTantrum(int status)
+        : FITSException(), _status(status)
+    {
+        fits_get_errstatus(_status, _errText);
+    }
 
-FITSTantrum::~FITSTantrum() {}
+    FITSTantrum::~FITSTantrum() {}
 
-
-/* virtual */
-int FITSTantrum::getStatus() const
-{
-    return _status;
-}
+    /* virtual */
+    int FITSTantrum::getStatus() const
+    {
+        return _status;
+    }
 
 }

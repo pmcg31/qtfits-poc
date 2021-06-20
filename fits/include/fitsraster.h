@@ -8,23 +8,22 @@
 namespace ELS
 {
 
-class FITSRaster
-{
-public:
-    FITSRaster(FITSImage::BitDepth bitDepth,
-               int64_t pixelCount);
-    ~FITSRaster();
+    class FITSRaster
+    {
+    public:
+        FITSRaster(FITSImage::BitDepth bitDepth,
+                   int64_t pixelCount);
+        ~FITSRaster();
 
-    void readPix(fitsfile* fits,
-                 long* fpixel);
+        void readPix(fitsfile *fits,
+                     long *fpixel);
 
-    const void* getPixels() const;
+        const void *getPixels() const;
 
-private:
-    FITSImage::BitDepth _bitDepth;
-    int64_t _pixelCount;
-    void* _pixels;
-};
-
+    private:
+        FITSImage::BitDepth _bitDepth;
+        int64_t _pixelCount;
+        void *_pixels;
+    };
 
 }
