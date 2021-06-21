@@ -28,7 +28,8 @@ FITSWidget::FITSWidget(QWidget *parent)
       _fits(0),
       _cacheImage(0),
       _showStretched(false),
-      _zoom(-1.0)
+      _zoom(-1.0),
+      _actualZoom(-1.0)
 {
     setBackgroundRole(QPalette::Dark);
     setAutoFillBackground(true);
@@ -127,15 +128,15 @@ void FITSWidget::wheelEvent(QWheelEvent *event)
     float zoom = _actualZoom;
     if (numSteps.y() >= 1)
     {
-        zoom = adjustZoom(_actualZoom + 0.1, ZAS_HIGHER);
-        printf("adjustZoom(%f, H) ==> %f\n", _actualZoom + 0.1, zoom);
+        zoom = adjustZoom(zoom, ZAS_HIGHER);
+        printf("adjustZoom(%f, H) ==> %f\n", _actualZoom + 0.01, zoom);
 
         _internalSetZoom(zoom);
     }
     else if (numSteps.y() <= -1)
     {
-        zoom = adjustZoom(_actualZoom - 0.1, ZAS_LOWER);
-        printf("adjustZoom(%f, L) ==> %f\n", _actualZoom - 0.1, zoom);
+        zoom = adjustZoom(zoom, ZAS_LOWER);
+        printf("adjustZoom(%f, L) ==> %f\n", _actualZoom - 0.01, zoom);
 
         _internalSetZoom(zoom);
     }
@@ -163,8 +164,16 @@ void FITSWidget::paintEvent(QPaintEvent * /* event */)
     printf("Zoom is: %f\n", _zoom);
     int imgW = _fits->getWidth();
     int imgH = _fits->getHeight();
+    QRect source(0, 0, imgW, imgH);
+
+    if (_zoom != -1.0)
+    {
+        imgW *= _zoom;
+        imgH *= _zoom;
+    }
 
     QRect target;
+    float zoomNow = _zoom;
     if ((imgW < w) && (imgH < h))
     {
         target.setLeft((w - imgW) / 2);
@@ -174,42 +183,74 @@ void FITSWidget::paintEvent(QPaintEvent * /* event */)
     }
     else
     {
-        float imgAspect = (float)imgW / (float)imgH;
-        float winAspect = (float)w / (float)h;
-
-        if (imgAspect >= winAspect)
+        if (_zoom == -1.0)
         {
-            target.setLeft(border);
-            target.setWidth(w);
-            int targetHeight = (int)(w / imgAspect);
-            target.setTop((h - targetHeight) / 2 + border);
-            target.setHeight(targetHeight);
+            float imgAspect = (float)imgW / (float)imgH;
+            float winAspect = (float)w / (float)h;
+
+            if (imgAspect >= winAspect)
+            {
+                target.setLeft(border);
+                target.setWidth(w);
+                int targetHeight = (int)(w / imgAspect);
+                target.setTop((h - targetHeight) / 2 + border);
+                target.setHeight(targetHeight);
+            }
+            else
+            {
+                target.setTop(border);
+                target.setHeight(h);
+                int targetWidth = (int)(h * imgAspect);
+                target.setLeft((w - targetWidth) / 2 + border);
+                target.setWidth(targetWidth);
+            }
+
+            zoomNow = (float)target.width() / (float)imgW;
         }
         else
         {
-            target.setTop(border);
-            target.setHeight(h);
-            int targetWidth = (int)(h * imgAspect);
-            target.setLeft((w - targetWidth) / 2 + border);
-            target.setWidth(targetWidth);
+            int widthXtra = imgW - w;
+            int heightXtra = imgH - h;
+
+            if (widthXtra < 0)
+            {
+                target.setLeft((w - imgW) / 2 + border);
+                target.setWidth(imgW);
+            }
+            else
+            {
+                target.setLeft(border);
+                target.setWidth(w);
+                source.setLeft((imgW - w) / 2);
+                source.setWidth(w);
+            }
+
+            if (heightXtra < 0)
+            {
+                target.setTop((h - imgH) / 2 + border);
+                target.setHeight(imgH);
+            }
+            else
+            {
+                target.setTop(border);
+                target.setHeight(h);
+                source.setTop((imgH - h) / 2);
+                source.setHeight(h);
+            }
         }
     }
 
-    float zoomNow = (float)target.width() / (float)imgW;
-    if (_zoom != -1.0)
-    {
-        zoomNow = _zoom;
-    }
+    printf("zoomNow: %f _actualZoom: %f\n", zoomNow, _actualZoom);
     if (zoomNow != _actualZoom)
     {
         _actualZoom = zoomNow;
 
-        emit actualZoomChanged(zoomNow);
+        emit actualZoomChanged(_actualZoom);
     }
 
     painter.setRenderHint(QPainter::SmoothPixmapTransform);
     painter.setRenderHint(QPainter::Antialiasing);
-    painter.drawImage(target, *_cacheImage);
+    painter.drawImage(target, *_cacheImage, source);
 }
 
 QImage *FITSWidget::convertImage() const
@@ -285,19 +326,39 @@ float FITSWidget::adjustZoom(float desiredZoom,
     }
     else
     {
-        if (desiredZoom != g_validZooms[0])
+        if (desiredZoom == g_validZooms[0])
+        {
+            if (strategy == ZAS_HIGHER)
+            {
+                return g_validZooms[1];
+            }
+            else
+            {
+                return g_validZooms[0];
+            }
+        }
+        else
         {
             for (int i = 1; true; i++)
             {
                 if (g_validZooms[i] == -1.0)
                 {
                     return g_validZooms[i - 1];
-                    break;
                 }
 
                 if (desiredZoom == g_validZooms[i])
                 {
-                    break;
+                    switch (strategy)
+                    {
+                    case ZAS_CLOSEST:
+                        return g_validZooms[i];
+                    case ZAS_HIGHER:
+                        break;
+                    case ZAS_LOWER:
+                        return g_validZooms[i - 1];
+                    }
+
+                    continue;
                 }
 
                 if (desiredZoom < g_validZooms[i])
@@ -318,13 +379,10 @@ float FITSWidget::adjustZoom(float desiredZoom,
                             return g_validZooms[i - 1];
                         }
                     }
-                    break;
                     case ZAS_HIGHER:
                         return g_validZooms[i];
-                        break;
                     case ZAS_LOWER:
                         return g_validZooms[i - 1];
-                        break;
                     }
 
                     break;

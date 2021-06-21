@@ -36,7 +36,7 @@ MainWindow::MainWindow(QWidget *parent)
                      this, &MainWindow::fitsFileChanged);
     QObject::connect(&fitsWidget, &FITSWidget::fileFailed,
                      this, &MainWindow::fitsFileFailed);
-    QObject::connect(&fitsWidget, &FITSWidget::zoomChanged,
+    QObject::connect(&fitsWidget, &FITSWidget::actualZoomChanged,
                      this, &MainWindow::fitsZoomChanged);
     QObject::connect(&stretchBtn, &QPushButton::toggled,
                      this, &MainWindow::stretchToggled);
