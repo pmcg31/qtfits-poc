@@ -1,4 +1,4 @@
-QT += core gui
+QT += core gui concurrent
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -17,7 +17,8 @@ SOURCES += \
     fits/src/fitstantrum.cpp \
     gui/src/main.cpp \
     gui/src/mainwindow.cpp \
-    gui/src/fitswidget.cpp
+    gui/src/fitswidget.cpp \
+    gui/src/stretch.cpp
 
 HEADERS += \
     fits/include/fitsexception.h \
@@ -25,7 +26,11 @@ HEADERS += \
     fits/include/fitsraster.h \
     fits/include/fitstantrum.h \
     gui/include/mainwindow.h \
-    gui/include/fitswidget.h
+    gui/include/fitswidget.h \
+    gui/include/stretch.h
+
+RESOURCES += \
+    icon/icon.qrc
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

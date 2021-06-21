@@ -4,10 +4,25 @@
 #include "fitsimage.h"
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), mainPane(), layout(&mainPane), label(tr("Whale shit!")), fitsWidget()
+    : QMainWindow(parent),
+      mainPane(),
+      layout(&mainPane),
+      label(tr("Whale shit!")),
+      fitsWidget(),
+      onIcon(":/icon/stretch-icon.png"),
+      offIcon(":/icon/stretch-icon-off.png"),
+      stretchBtn(offIcon, ""),
+      showingStretched(false)
 {
+    stretchBtn.setStyleSheet("QPushButton{border: none;border-radius: 7px;background-color:rgba(255, 255, 255,32);}");
+    stretchBtn.setIconSize(QSize(20, 20));
+    stretchBtn.setMinimumSize(30, 30);
+    stretchBtn.setMaximumSize(30, 30);
+    stretchBtn.setCheckable(true);
+
     layout.addWidget(&label);
     layout.addWidget(&fitsWidget);
+    layout.addWidget(&stretchBtn);
 
     setCentralWidget(&mainPane);
 
@@ -15,6 +30,10 @@ MainWindow::MainWindow(QWidget *parent)
                      this, &MainWindow::fitsFileChanged);
     QObject::connect(&fitsWidget, &FITSWidget::fileFailed,
                      this, &MainWindow::fitsFileFailed);
+    QObject::connect(&stretchBtn, &QPushButton::toggled,
+                     this, &MainWindow::stretchToggled);
+    QObject::connect(this, &MainWindow::toggleStretched,
+                     &fitsWidget, &FITSWidget::setStretched);
 
     QStringList args = QApplication::arguments();
     if (args.length() < 2)
@@ -57,4 +76,24 @@ void MainWindow::fitsFileFailed(const char *filename,
                                 const char *errText)
 {
     printf("File failed [%s]: %s\n", errText, filename);
+}
+
+void MainWindow::stretchToggled(bool isChecked)
+{
+    if (showingStretched != isChecked)
+    {
+        showingStretched = isChecked;
+
+        stretchBtn.setChecked(showingStretched);
+        if (showingStretched)
+        {
+            stretchBtn.setIcon(onIcon);
+        }
+        else
+        {
+            stretchBtn.setIcon(offIcon);
+        }
+
+        emit toggleStretched(showingStretched);
+    }
 }

@@ -8,9 +8,15 @@ It is unlikely I would have achieved success without [this code example](https:/
 [cfitsio documention](https://heasarc.gsfc.nasa.gov/docs/software/fitsio/c/c_user/cfitsio.html) does not really make things obvious. So, thank you Mitch Richling!
 
 There are times when I would just like to quickly take a look at a FITS image, and I have not yet found a simple tool for this. This project
-is the precursor to such a tool. Feature ideas so far include:
+is the precursor to such a tool.
+
+Features included so far:
 
     - Integrated screen transfer function
+        - Borrowed from kstars...thank you!
+
+Feature ideas:
+
     - Quick option to see center and corners at 1:1
     - Option to highlight the brightest and/or darkest pixels
     - Histogram, possibly with a way to show more detail on the brightest and darkest sections (to get a better idea of how much data is getting close to being clipped; this is a reaction to my inability to choose optimal exposure times)

@@ -2,11 +2,17 @@
 
 #include "fitswidget.h"
 #include "fitstantrum.h"
+#include "stretch.h"
 
 #define FITS_READ_T double
 
 FITSWidget::FITSWidget(QWidget *parent)
-    : QWidget(parent), _sizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding), _filename(0), _fits(0), _cacheImage(0)
+    : QWidget(parent),
+      _sizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding),
+      _filename(0),
+      _fits(0),
+      _cacheImage(0),
+      _showStretched(false)
 {
     setBackgroundRole(QPalette::Dark);
     setAutoFillBackground(true);
@@ -51,6 +57,21 @@ void FITSWidget::setFile(const char *filename)
         {
             fprintf(stderr, "FITSException: %s for file %s\n", e->getErrText(), filename);
             delete e;
+        }
+    }
+}
+
+void FITSWidget::setStretched(bool isStretched)
+{
+    if (_showStretched != isStretched)
+    {
+        _showStretched = isStretched;
+
+        if (_cacheImage != 0)
+        {
+            delete _cacheImage;
+            _cacheImage = 0;
+            update();
         }
     }
 }
@@ -110,86 +131,114 @@ void FITSWidget::paintEvent(QPaintEvent * /* event */)
 
 QImage *FITSWidget::convertImage() const
 {
-    QImage::Format format = QImage::Format_ARGB32;
-
     int width = _fits->getWidth();
     int height = _fits->getHeight();
     int chanAx = _fits->getChanAx();
     bool isColor = _fits->isColor();
 
+    QImage::Format format = QImage::Format_ARGB32;
+    if (!isColor)
+    {
+        format = QImage::Format_Grayscale8;
+    }
+
+    const void *pixels = _fits->getPixels();
+
+    int fitsioDataType = 0;
+    switch (_fits->getBitDepth())
+    {
+    case ELS::FITSImage::BD_INT_8:
+        fitsioDataType = TBYTE;
+        break;
+    case ELS::FITSImage::BD_INT_16:
+        fitsioDataType = TUSHORT;
+        break;
+    case ELS::FITSImage::BD_INT_32:
+        fitsioDataType = TUINT;
+        break;
+    case ELS::FITSImage::BD_FLOAT:
+        fitsioDataType = TFLOAT;
+        break;
+    case ELS::FITSImage::BD_DOUBLE:
+        fitsioDataType = TDOUBLE;
+        break;
+    }
+
     QImage *qi = new QImage(width,
                             height,
                             format);
 
-    const void *pixels = _fits->getPixels();
+    Stretch cunningham(width,
+                       height,
+                       isColor ? 3 : 1,
+                       fitsioDataType);
 
-    switch (_fits->getBitDepth())
+    if (_showStretched)
     {
-    case ELS::FITSImage::BD_INT_8:
-        break;
-    case ELS::FITSImage::BD_INT_16:
-        if (isColor)
-        {
-            convertU16ColorImage(qi,
-                                 width,
-                                 height,
-                                 chanAx,
-                                 (const uint16_t *)pixels);
-        }
-        else
-        {
-            convertU16MonoImage(qi,
-                                width,
-                                height,
-                                (const uint16_t *)pixels);
-        }
-        break;
-    case ELS::FITSImage::BD_INT_32:
-        break;
-    case ELS::FITSImage::BD_FLOAT:
-        if (isColor)
-        {
-            convertFloatColorImage(qi,
-                                   width,
-                                   height,
-                                   chanAx,
-                                   (const float *)pixels);
-        }
-        else
-        {
-            convertFloatMonoImage(qi,
-                                  width,
-                                  height,
-                                  (const float *)pixels);
-        }
-        break;
-    case ELS::FITSImage::BD_DOUBLE:
-        if (isColor)
-        {
-            convertDoubleColorImage(qi,
-                                    width,
-                                    height,
-                                    chanAx,
-                                    (const double *)pixels);
-        }
-        else
-        {
-            convertDoubleMonoImage(qi,
-                                   width,
-                                   height,
-                                   (const double *)pixels);
-        }
-        break;
+        StretchParams sp = cunningham.computeParams((const uint8_t *)pixels);
+        cunningham.setParams(sp);
     }
 
-    //    const uint16_t* u16pix = (const uint16_t*)pixels;
+    cunningham.run((uint8_t const *)pixels, qi);
 
-    //    for (int y = 0; y < height; y++) {
-    //        for (int x = 0; x < width; x++) {
-    //            uint16_t val = u16pix[y * width + x];
-    //            qi->setPixelColor(x, y, QColor::fromRgba64(val, val, val));
-    //        }
-    //    }
+    // switch (_fits->getBitDepth())
+    // {
+    // case ELS::FITSImage::BD_INT_8:
+    //     break;
+    // case ELS::FITSImage::BD_INT_16:
+    //     if (isColor)
+    //     {
+    //         convertU16ColorImage(qi,
+    //                              width,
+    //                              height,
+    //                              chanAx,
+    //                              (const uint16_t *)pixels);
+    //     }
+    //     else
+    //     {
+    //         convertU16MonoImage(qi,
+    //                             width,
+    //                             height,
+    //                             (const uint16_t *)pixels);
+    //     }
+    //     break;
+    // case ELS::FITSImage::BD_INT_32:
+    //     break;
+    // case ELS::FITSImage::BD_FLOAT:
+    //     if (isColor)
+    //     {
+    //         convertFloatColorImage(qi,
+    //                                width,
+    //                                height,
+    //                                chanAx,
+    //                                (const float *)pixels);
+    //     }
+    //     else
+    //     {
+    //         convertFloatMonoImage(qi,
+    //                               width,
+    //                               height,
+    //                               (const float *)pixels);
+    //     }
+    //     break;
+    // case ELS::FITSImage::BD_DOUBLE:
+    //     if (isColor)
+    //     {
+    //         convertDoubleColorImage(qi,
+    //                                 width,
+    //                                 height,
+    //                                 chanAx,
+    //                                 (const double *)pixels);
+    //     }
+    //     else
+    //     {
+    //         convertDoubleMonoImage(qi,
+    //                                width,
+    //                                height,
+    //                                (const double *)pixels);
+    //     }
+    //     break;
+    // }
 
     return qi;
 }

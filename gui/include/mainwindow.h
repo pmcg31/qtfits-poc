@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QVBoxLayout>
 #include <QLabel>
+#include <QPushButton>
 
 #include "fitswidget.h"
 
@@ -22,15 +23,24 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+signals:
+    void toggleStretched(bool showStretched);
+
 private:
     void fitsFileChanged(const char *filename);
     void fitsFileFailed(const char *filename,
                         const char *errText);
+
+    void stretchToggled(bool isChecked);
 
 private:
     QWidget mainPane;
     QVBoxLayout layout;
     QLabel label;
     FITSWidget fitsWidget;
+    QIcon onIcon;
+    QIcon offIcon;
+    QPushButton stretchBtn;
+    bool showingStretched;
 };
 #endif // MAINWINDOW_H

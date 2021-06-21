@@ -40,6 +40,7 @@ public:
 
 public slots:
     void setFile(const char *filename);
+    void setStretched(bool isStretched);
 
 signals:
     void fileChanged(const char *filename);
@@ -83,6 +84,7 @@ private:
     const char *_filename;
     ELS::FITSImage *_fits;
     QImage *_cacheImage;
+    bool _showStretched;
 };
 
 #endif // FITSWIDGET_H
