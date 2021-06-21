@@ -14,6 +14,8 @@ Features included so far:
 
     - Integrated screen transfer function
         - Borrowed from kstars...thank you!
+    - Scroll wheel zooms (central only for now)
+    - Buttons for zoom-to-fit and zoom 1:1
 
 Feature ideas:
 

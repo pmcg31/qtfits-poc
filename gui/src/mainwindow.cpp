@@ -13,18 +13,36 @@ MainWindow::MainWindow(QWidget *parent)
       bottomLayout(),
       stretchBtn(offIcon, ""),
       showingStretched(false),
-      currentZoom("--")
+      currentZoom("--"),
+      zoomFitBtn("fit"),
+      zoom100Btn("1:1")
 {
-    stretchBtn.setStyleSheet("QPushButton{border: none;border-radius: 7px;background-color: #444;}");
-    stretchBtn.setIconSize(QSize(20, 20));
-    stretchBtn.setMinimumSize(30, 30);
-    stretchBtn.setMaximumSize(30, 30);
+    const QSize iconSize(20, 20);
+    const QSize btnSize(30, 30);
+    const char *btnStyle = "QPushButton{border: none;border-radius: 7px;background-color: #444;}";
+    stretchBtn.setStyleSheet(btnStyle);
+    stretchBtn.setIconSize(iconSize);
+    stretchBtn.setMinimumSize(btnSize);
+    stretchBtn.setMaximumSize(btnSize);
     stretchBtn.setCheckable(true);
 
+    zoomFitBtn.setEnabled(true);
+    zoomFitBtn.setStyleSheet(btnStyle);
+    zoomFitBtn.setMinimumSize(btnSize);
+    zoomFitBtn.setMaximumSize(btnSize);
+    zoom100Btn.setEnabled(true);
+    zoom100Btn.setStyleSheet(btnStyle);
+    zoom100Btn.setMinimumSize(btnSize);
+    zoom100Btn.setMaximumSize(btnSize);
+
     currentZoom.setStyleSheet("QLabel{border: 1px solid #666;border-radius: 7px;color: #999;}");
+    currentZoom.setAlignment(Qt::AlignCenter);
+    currentZoom.setMinimumWidth(65);
 
     bottomLayout.addWidget(&stretchBtn);
     bottomLayout.addStretch(1);
+    bottomLayout.addWidget(&zoomFitBtn);
+    bottomLayout.addWidget(&zoom100Btn);
     bottomLayout.addWidget(&currentZoom);
 
     layout.addWidget(&fitsWidget);
@@ -42,6 +60,10 @@ MainWindow::MainWindow(QWidget *parent)
                      this, &MainWindow::stretchToggled);
     QObject::connect(this, &MainWindow::toggleStretched,
                      &fitsWidget, &FITSWidget::setStretched);
+    QObject::connect(&zoomFitBtn, &QPushButton::clicked,
+                     this, &MainWindow::zoomFitClicked);
+    QObject::connect(&zoom100Btn, &QPushButton::clicked,
+                     this, &MainWindow::zoom100Clicked);
 
     QStringList args = QApplication::arguments();
     if (args.length() < 2)
@@ -112,4 +134,14 @@ void MainWindow::stretchToggled(bool isChecked)
 
         emit toggleStretched(showingStretched);
     }
+}
+
+void MainWindow::zoomFitClicked(bool /* isChecked */)
+{
+    fitsWidget.setZoom(-1.0);
+}
+
+void MainWindow::zoom100Clicked(bool /* isChecked */)
+{
+    fitsWidget.setZoom(1.0);
 }

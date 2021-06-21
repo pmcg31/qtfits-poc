@@ -111,7 +111,10 @@ void FITSWidget::setStretched(bool isStretched)
 void FITSWidget::setZoom(float zoom)
 {
     // Adjust zoom to the closest valid value
-    zoom = adjustZoom(zoom);
+    if (zoom != -1.0)
+    {
+        zoom = adjustZoom(zoom);
+    }
 
     if (_zoom != zoom)
     {
@@ -122,21 +125,17 @@ void FITSWidget::setZoom(float zoom)
 void FITSWidget::wheelEvent(QWheelEvent *event)
 {
     QPoint numSteps = event->angleDelta() / 120;
-    printf("Wheel: steps: vert: %d horiz: %d inverted? %s\n",
-           numSteps.y(), numSteps.x(), event->inverted() ? "yes" : "no");
 
     float zoom = _actualZoom;
     if (numSteps.y() >= 1)
     {
         zoom = adjustZoom(zoom, ZAS_HIGHER);
-        printf("adjustZoom(%f, H) ==> %f\n", _actualZoom + 0.01, zoom);
 
         _internalSetZoom(zoom);
     }
     else if (numSteps.y() <= -1)
     {
         zoom = adjustZoom(zoom, ZAS_LOWER);
-        printf("adjustZoom(%f, L) ==> %f\n", _actualZoom - 0.01, zoom);
 
         _internalSetZoom(zoom);
     }
@@ -161,25 +160,26 @@ void FITSWidget::paintEvent(QPaintEvent * /* event */)
         _cacheImage = convertImage();
     }
 
-    printf("Zoom is: %f\n", _zoom);
     int imgW = _fits->getWidth();
     int imgH = _fits->getHeight();
-    QRect source(0, 0, imgW, imgH);
+    int imgZoomW = imgW;
+    int imgZoomH = imgH;
 
     if (_zoom != -1.0)
     {
-        imgW *= _zoom;
-        imgH *= _zoom;
+        imgZoomW *= _zoom;
+        imgZoomH *= _zoom;
     }
 
     QRect target;
+    QRect source(0, 0, imgW, imgH);
     float zoomNow = _zoom;
-    if ((imgW < w) && (imgH < h))
+    if ((imgZoomW < w) && (imgZoomH < h))
     {
-        target.setLeft((w - imgW) / 2);
-        target.setTop((h - imgH) / 2);
-        target.setWidth(imgW);
-        target.setHeight(imgH);
+        target.setLeft((w - imgZoomW) / 2);
+        target.setTop((h - imgZoomH) / 2);
+        target.setWidth(imgZoomW);
+        target.setHeight(imgZoomH);
     }
     else
     {
@@ -209,38 +209,47 @@ void FITSWidget::paintEvent(QPaintEvent * /* event */)
         }
         else
         {
-            int widthXtra = imgW - w;
-            int heightXtra = imgH - h;
+            int widthXtra = imgZoomW - w;
+            int heightXtra = imgZoomH - h;
 
+            QRect sourceZoom(0, 0, 0, 0);
             if (widthXtra < 0)
             {
-                target.setLeft((w - imgW) / 2 + border);
-                target.setWidth(imgW);
+                target.setLeft((w - imgZoomW) / 2 + border);
+                target.setWidth(imgZoomW);
+                sourceZoom.setLeft(0);
+                sourceZoom.setWidth(imgZoomW);
             }
             else
             {
                 target.setLeft(border);
                 target.setWidth(w);
-                source.setLeft((imgW - w) / 2);
-                source.setWidth(w);
+                sourceZoom.setLeft(widthXtra / 2);
+                sourceZoom.setWidth(w);
             }
 
             if (heightXtra < 0)
             {
-                target.setTop((h - imgH) / 2 + border);
-                target.setHeight(imgH);
+                target.setTop((h - imgZoomH) / 2 + border);
+                target.setHeight(imgZoomH);
+                sourceZoom.setTop(0);
+                sourceZoom.setHeight(imgZoomH);
             }
             else
             {
                 target.setTop(border);
                 target.setHeight(h);
-                source.setTop((imgH - h) / 2);
-                source.setHeight(h);
+                sourceZoom.setTop(heightXtra / 2);
+                sourceZoom.setHeight(h);
             }
+
+            source.setLeft(sourceZoom.left() / _zoom);
+            source.setWidth(sourceZoom.width() / _zoom);
+            source.setTop(sourceZoom.top() / _zoom);
+            source.setHeight(sourceZoom.height() / _zoom);
         }
     }
 
-    printf("zoomNow: %f _actualZoom: %f\n", zoomNow, _actualZoom);
     if (zoomNow != _actualZoom)
     {
         _actualZoom = zoomNow;

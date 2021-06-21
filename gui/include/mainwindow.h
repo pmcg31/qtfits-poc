@@ -35,6 +35,9 @@ private:
 
     void stretchToggled(bool isChecked);
 
+    void zoomFitClicked(bool isChecked);
+    void zoom100Clicked(bool isChecked);
+
 private:
     QWidget mainPane;
     QVBoxLayout layout;
@@ -45,5 +48,7 @@ private:
     QPushButton stretchBtn;
     bool showingStretched;
     QLabel currentZoom;
+    QPushButton zoomFitBtn;
+    QPushButton zoom100Btn;
 };
 #endif // MAINWINDOW_H
