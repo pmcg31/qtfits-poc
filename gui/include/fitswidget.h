@@ -39,48 +39,40 @@ public:
 
     const ELS::FITSImage *getImage() const;
 
+    const char *getFilename() const;
+    bool getStretched() const;
+    float getZoom() const;
+
 public slots:
     void setFile(const char *filename);
     void setStretched(bool isStretched);
+    void setZoom(float zoom);
 
 signals:
     void fileChanged(const char *filename);
     void fileFailed(const char *filename,
                     const char *errText);
     void zoomChanged(float zoom);
+    void actualZoomChanged(float zoom);
 
 protected:
     virtual void wheelEvent(QWheelEvent *event) override;
     virtual void paintEvent(QPaintEvent *event) override;
 
     QImage *convertImage() const;
-    void convertU16MonoImage(QImage *qi,
-                             int width,
-                             int height,
-                             const uint16_t *pixels) const;
-    void convertFloatMonoImage(QImage *qi,
-                               int width,
-                               int height,
-                               const float *pixels) const;
-    void convertDoubleMonoImage(QImage *qi,
-                                int width,
-                                int height,
-                                const double *pixels) const;
-    void convertU16ColorImage(QImage *qi,
-                              int width,
-                              int height,
-                              int chanAx,
-                              const uint16_t *pixels) const;
-    void convertFloatColorImage(QImage *qi,
-                                int width,
-                                int height,
-                                int chanAx,
-                                const float *pixels) const;
-    void convertDoubleColorImage(QImage *qi,
-                                 int width,
-                                 int height,
-                                 int chanAx,
-                                 const double *pixels) const;
+
+protected:
+    enum ZoomAdjustStrategy
+    {
+        ZAS_CLOSEST,
+        ZAS_HIGHER,
+        ZAS_LOWER
+    };
+
+    void _internalSetZoom(float zoom);
+
+    static float adjustZoom(float desiredZoom,
+                            ZoomAdjustStrategy strategy = ZAS_CLOSEST);
 
 private:
     QSizePolicy _sizePolicy;
@@ -89,6 +81,10 @@ private:
     QImage *_cacheImage;
     bool _showStretched;
     float _zoom;
+    float _actualZoom;
+
+private:
+    static const float g_validZooms[];
 };
 
 #endif // FITSWIDGET_H

@@ -13,7 +13,7 @@ MainWindow::MainWindow(QWidget *parent)
       bottomLayout(),
       stretchBtn(offIcon, ""),
       showingStretched(false),
-      currentZoom("100%")
+      currentZoom("--")
 {
     stretchBtn.setStyleSheet("QPushButton{border: none;border-radius: 7px;background-color: #444;}");
     stretchBtn.setIconSize(QSize(20, 20));

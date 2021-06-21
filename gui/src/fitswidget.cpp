@@ -4,7 +4,22 @@
 #include "fitstantrum.h"
 #include "stretch.h"
 
-#define FITS_READ_T double
+/* static */
+const float FITSWidget::g_validZooms[] = {
+    0.125,
+    0.250,
+    0.333,
+    0.500,
+    0.667,
+    0.750,
+    1.000,
+    1.250,
+    1.333,
+    1.500,
+    1.667,
+    1.750,
+    2.000,
+    -1.0};
 
 FITSWidget::FITSWidget(QWidget *parent)
     : QWidget(parent),
@@ -13,7 +28,7 @@ FITSWidget::FITSWidget(QWidget *parent)
       _fits(0),
       _cacheImage(0),
       _showStretched(false),
-      _zoom(1.0)
+      _zoom(-1.0)
 {
     setBackgroundRole(QPalette::Dark);
     setAutoFillBackground(true);
@@ -34,6 +49,21 @@ QSize FITSWidget::minimumSizeHint() const
 const ELS::FITSImage *FITSWidget::getImage() const
 {
     return _fits;
+}
+
+const char *FITSWidget::getFilename() const
+{
+    return _filename;
+}
+
+bool FITSWidget::getStretched() const
+{
+    return _showStretched;
+}
+
+float FITSWidget::getZoom() const
+{
+    return _zoom;
 }
 
 void FITSWidget::setFile(const char *filename)
@@ -77,11 +107,38 @@ void FITSWidget::setStretched(bool isStretched)
     }
 }
 
+void FITSWidget::setZoom(float zoom)
+{
+    // Adjust zoom to the closest valid value
+    zoom = adjustZoom(zoom);
+
+    if (_zoom != zoom)
+    {
+        _internalSetZoom(zoom);
+    }
+}
+
 void FITSWidget::wheelEvent(QWheelEvent *event)
 {
     QPoint numSteps = event->angleDelta() / 120;
     printf("Wheel: steps: vert: %d horiz: %d inverted? %s\n",
            numSteps.y(), numSteps.x(), event->inverted() ? "yes" : "no");
+
+    float zoom = _actualZoom;
+    if (numSteps.y() >= 1)
+    {
+        zoom = adjustZoom(_actualZoom + 0.1, ZAS_HIGHER);
+        printf("adjustZoom(%f, H) ==> %f\n", _actualZoom + 0.1, zoom);
+
+        _internalSetZoom(zoom);
+    }
+    else if (numSteps.y() <= -1)
+    {
+        zoom = adjustZoom(_actualZoom - 0.1, ZAS_LOWER);
+        printf("adjustZoom(%f, L) ==> %f\n", _actualZoom - 0.1, zoom);
+
+        _internalSetZoom(zoom);
+    }
 }
 
 void FITSWidget::paintEvent(QPaintEvent * /* event */)
@@ -103,6 +160,7 @@ void FITSWidget::paintEvent(QPaintEvent * /* event */)
         _cacheImage = convertImage();
     }
 
+    printf("Zoom is: %f\n", _zoom);
     int imgW = _fits->getWidth();
     int imgH = _fits->getHeight();
 
@@ -138,11 +196,15 @@ void FITSWidget::paintEvent(QPaintEvent * /* event */)
     }
 
     float zoomNow = (float)target.width() / (float)imgW;
-    if (zoomNow != _zoom)
+    if (_zoom != -1.0)
     {
-        _zoom = zoomNow;
+        zoomNow = _zoom;
+    }
+    if (zoomNow != _actualZoom)
+    {
+        _actualZoom = zoomNow;
 
-        emit zoomChanged(_zoom);
+        emit actualZoomChanged(zoomNow);
     }
 
     painter.setRenderHint(QPainter::SmoothPixmapTransform);
@@ -154,7 +216,6 @@ QImage *FITSWidget::convertImage() const
 {
     int width = _fits->getWidth();
     int height = _fits->getHeight();
-    int chanAx = _fits->getChanAx();
     bool isColor = _fits->isColor();
 
     QImage::Format format = QImage::Format_ARGB32;
@@ -202,208 +263,75 @@ QImage *FITSWidget::convertImage() const
 
     cunningham.run((uint8_t const *)pixels, qi);
 
-    // switch (_fits->getBitDepth())
-    // {
-    // case ELS::FITSImage::BD_INT_8:
-    //     break;
-    // case ELS::FITSImage::BD_INT_16:
-    //     if (isColor)
-    //     {
-    //         convertU16ColorImage(qi,
-    //                              width,
-    //                              height,
-    //                              chanAx,
-    //                              (const uint16_t *)pixels);
-    //     }
-    //     else
-    //     {
-    //         convertU16MonoImage(qi,
-    //                             width,
-    //                             height,
-    //                             (const uint16_t *)pixels);
-    //     }
-    //     break;
-    // case ELS::FITSImage::BD_INT_32:
-    //     break;
-    // case ELS::FITSImage::BD_FLOAT:
-    //     if (isColor)
-    //     {
-    //         convertFloatColorImage(qi,
-    //                                width,
-    //                                height,
-    //                                chanAx,
-    //                                (const float *)pixels);
-    //     }
-    //     else
-    //     {
-    //         convertFloatMonoImage(qi,
-    //                               width,
-    //                               height,
-    //                               (const float *)pixels);
-    //     }
-    //     break;
-    // case ELS::FITSImage::BD_DOUBLE:
-    //     if (isColor)
-    //     {
-    //         convertDoubleColorImage(qi,
-    //                                 width,
-    //                                 height,
-    //                                 chanAx,
-    //                                 (const double *)pixels);
-    //     }
-    //     else
-    //     {
-    //         convertDoubleMonoImage(qi,
-    //                                width,
-    //                                height,
-    //                                (const double *)pixels);
-    //     }
-    //     break;
-    // }
-
     return qi;
 }
 
-void FITSWidget::convertU16MonoImage(QImage *qi,
-                                     int width,
-                                     int height,
-                                     const uint16_t *pixels) const
+void FITSWidget::_internalSetZoom(float zoom)
 {
-    for (int y = 0; y < height; y++)
-    {
-        for (int x = 0; x < width; x++)
-        {
-            uint8_t val = (uint8_t)((double)pixels[y * width + x] / 257);
-            qi->setPixelColor(x, y, QColor::fromRgb(val, val, val));
-        }
-    }
+    _zoom = zoom;
+
+    update();
+
+    emit zoomChanged(_zoom);
 }
 
-void FITSWidget::convertFloatMonoImage(QImage *qi,
-                                       int width,
-                                       int height,
-                                       const float *pixels) const
+/* static */
+float FITSWidget::adjustZoom(float desiredZoom,
+                             ZoomAdjustStrategy strategy /* = ZAS_CLOSEST */)
 {
-    for (int y = 0; y < height; y++)
+    if (desiredZoom < g_validZooms[0])
     {
-        for (int x = 0; x < width; x++)
-        {
-            uint8_t val = (uint8_t)(pixels[y * width + x] * 255);
-            qi->setPixelColor(x, y, QColor::fromRgb(val, val, val));
-        }
+        return g_validZooms[0];
     }
-}
-
-void FITSWidget::convertDoubleMonoImage(QImage *qi,
-                                        int width,
-                                        int height,
-                                        const double *pixels) const
-{
-    for (int y = 0; y < height; y++)
+    else
     {
-        for (int x = 0; x < width; x++)
+        if (desiredZoom != g_validZooms[0])
         {
-            uint8_t val = (uint8_t)(pixels[y * width + x] * 255);
-            qi->setPixelColor(x, y, QColor::fromRgb(val, val, val));
-        }
-    }
-}
-
-void FITSWidget::convertU16ColorImage(QImage *qi,
-                                      int width,
-                                      int height,
-                                      int chanAx,
-                                      const uint16_t *pixels) const
-{
-    uint8_t valR;
-    uint8_t valG;
-    uint8_t valB;
-
-    for (int y = 0; y < height; y++)
-    {
-        for (int x = 0; x < width; x++)
-        {
-            switch (chanAx)
+            for (int i = 1; true; i++)
             {
-            case 1:
-                valR = (uint8_t)((double)pixels[3 * (x + width * y) + 2] / 257);
-                valG = (uint8_t)((double)pixels[3 * (x + width * y) + 1] / 257);
-                valB = (uint8_t)((double)pixels[3 * (x + width * y) + 0] / 257);
-                break;
-            case 3:
-                valR = (uint8_t)((double)pixels[x + width * y + 2 * width * height] / 257);
-                valG = (uint8_t)((double)pixels[x + width * y + 1 * width * height] / 257);
-                valB = (uint8_t)((double)pixels[x + width * y + 0 * width * height] / 257);
-                break;
-            }
+                if (g_validZooms[i] == -1.0)
+                {
+                    return g_validZooms[i - 1];
+                    break;
+                }
 
-            qi->setPixelColor(x, y, QColor::fromRgb(valR, valG, valB));
+                if (desiredZoom == g_validZooms[i])
+                {
+                    break;
+                }
+
+                if (desiredZoom < g_validZooms[i])
+                {
+                    switch (strategy)
+                    {
+                    case ZAS_CLOSEST:
+                    {
+                        float tmp1 = g_validZooms[i] - desiredZoom;
+                        float tmp2 = desiredZoom - g_validZooms[i - 1];
+
+                        if (tmp1 < tmp2)
+                        {
+                            return g_validZooms[i];
+                        }
+                        else
+                        {
+                            return g_validZooms[i - 1];
+                        }
+                    }
+                    break;
+                    case ZAS_HIGHER:
+                        return g_validZooms[i];
+                        break;
+                    case ZAS_LOWER:
+                        return g_validZooms[i - 1];
+                        break;
+                    }
+
+                    break;
+                }
+            }
         }
     }
-}
 
-void FITSWidget::convertFloatColorImage(QImage *qi,
-                                        int width,
-                                        int height,
-                                        int chanAx,
-                                        const float *pixels) const
-{
-    uint8_t valR;
-    uint8_t valG;
-    uint8_t valB;
-
-    for (int y = 0; y < height; y++)
-    {
-        for (int x = 0; x < width; x++)
-        {
-            switch (chanAx)
-            {
-            case 1:
-                valR = 255 * pixels[3 * (x + width * y) + 2];
-                valG = 255 * pixels[3 * (x + width * y) + 1];
-                valB = 255 * pixels[3 * (x + width * y) + 0];
-                break;
-            case 3:
-                valR = 255 * pixels[x + width * y + 2 * width * height];
-                valG = 255 * pixels[x + width * y + 1 * width * height];
-                valB = 255 * pixels[x + width * y + 0 * width * height];
-                break;
-            }
-
-            qi->setPixelColor(x, y, QColor::fromRgb(valR, valG, valB));
-        }
-    }
-}
-
-void FITSWidget::convertDoubleColorImage(QImage *qi,
-                                         int width,
-                                         int height,
-                                         int chanAx,
-                                         const double *pixels) const
-{
-    uint8_t valR;
-    uint8_t valG;
-    uint8_t valB;
-
-    for (int y = 0; y < height; y++)
-    {
-        for (int x = 0; x < width; x++)
-        {
-            switch (chanAx)
-            {
-            case 1:
-                valR = 255 * pixels[3 * (x + width * y) + 2];
-                valG = 255 * pixels[3 * (x + width * y) + 1];
-                valB = 255 * pixels[3 * (x + width * y) + 0];
-                break;
-            case 3:
-                valR = 255 * pixels[x + width * y + 2 * width * height];
-                valG = 255 * pixels[x + width * y + 1 * width * height];
-                valB = 255 * pixels[x + width * y + 0 * width * height];
-                break;
-            }
-
-            qi->setPixelColor(x, y, QColor::fromRgb(valR, valG, valB));
-        }
-    }
+    return g_validZooms[0];
 }
