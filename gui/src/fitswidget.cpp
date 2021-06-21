@@ -12,7 +12,8 @@ FITSWidget::FITSWidget(QWidget *parent)
       _filename(0),
       _fits(0),
       _cacheImage(0),
-      _showStretched(false)
+      _showStretched(false),
+      _zoom(1.0)
 {
     setBackgroundRole(QPalette::Dark);
     setAutoFillBackground(true);
@@ -76,14 +77,26 @@ void FITSWidget::setStretched(bool isStretched)
     }
 }
 
+void FITSWidget::wheelEvent(QWheelEvent *event)
+{
+    QPoint numSteps = event->angleDelta() / 120;
+    printf("Wheel: steps: vert: %d horiz: %d inverted? %s\n",
+           numSteps.y(), numSteps.x(), event->inverted() ? "yes" : "no");
+}
+
 void FITSWidget::paintEvent(QPaintEvent * /* event */)
 {
     QPainter painter(this);
 
-    int w = width();
-    int h = height();
+    int realWidth = width();
+    int realHeight = height();
 
-    painter.drawRect(0, 0, w, h);
+    // painter.drawRect(0, 0, realWidth, realHeight);
+
+    int border = 1;
+
+    int w = realWidth - (border * 2);
+    int h = realHeight - (border * 2);
 
     if (_cacheImage == 0)
     {
@@ -108,20 +121,28 @@ void FITSWidget::paintEvent(QPaintEvent * /* event */)
 
         if (imgAspect >= winAspect)
         {
-            target.setLeft(0);
+            target.setLeft(border);
             target.setWidth(w);
             int targetHeight = (int)(w / imgAspect);
-            target.setTop((h - targetHeight) / 2);
+            target.setTop((h - targetHeight) / 2 + border);
             target.setHeight(targetHeight);
         }
         else
         {
-            target.setTop(0);
+            target.setTop(border);
             target.setHeight(h);
             int targetWidth = (int)(h * imgAspect);
-            target.setLeft((w - targetWidth) / 2);
+            target.setLeft((w - targetWidth) / 2 + border);
             target.setWidth(targetWidth);
         }
+    }
+
+    float zoomNow = (float)target.width() / (float)imgW;
+    if (zoomNow != _zoom)
+    {
+        _zoom = zoomNow;
+
+        emit zoomChanged(_zoom);
     }
 
     painter.setRenderHint(QPainter::SmoothPixmapTransform);

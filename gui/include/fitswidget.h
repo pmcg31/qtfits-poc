@@ -2,6 +2,7 @@
 #define FITSWIDGET_H
 
 #include <QWidget>
+#include <QWheelEvent>
 #include <QString>
 #include <fitsio.h>
 
@@ -46,9 +47,11 @@ signals:
     void fileChanged(const char *filename);
     void fileFailed(const char *filename,
                     const char *errText);
+    void zoomChanged(float zoom);
 
 protected:
-    void paintEvent(QPaintEvent *event) override;
+    virtual void wheelEvent(QWheelEvent *event) override;
+    virtual void paintEvent(QPaintEvent *event) override;
 
     QImage *convertImage() const;
     void convertU16MonoImage(QImage *qi,
@@ -85,6 +88,7 @@ private:
     ELS::FITSImage *_fits;
     QImage *_cacheImage;
     bool _showStretched;
+    float _zoom;
 };
 
 #endif // FITSWIDGET_H

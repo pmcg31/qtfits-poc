@@ -7,22 +7,28 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
       mainPane(),
       layout(&mainPane),
-      label(tr("Whale shit!")),
       fitsWidget(),
       onIcon(":/icon/stretch-icon.png"),
       offIcon(":/icon/stretch-icon-off.png"),
+      bottomLayout(),
       stretchBtn(offIcon, ""),
-      showingStretched(false)
+      showingStretched(false),
+      currentZoom("100%")
 {
-    stretchBtn.setStyleSheet("QPushButton{border: none;border-radius: 7px;background-color:rgba(255, 255, 255,32);}");
+    stretchBtn.setStyleSheet("QPushButton{border: none;border-radius: 7px;background-color: #444;}");
     stretchBtn.setIconSize(QSize(20, 20));
     stretchBtn.setMinimumSize(30, 30);
     stretchBtn.setMaximumSize(30, 30);
     stretchBtn.setCheckable(true);
 
-    layout.addWidget(&label);
+    currentZoom.setStyleSheet("QLabel{border: 1px solid #666;border-radius: 7px;color: #999;}");
+
+    bottomLayout.addWidget(&stretchBtn);
+    bottomLayout.addStretch(1);
+    bottomLayout.addWidget(&currentZoom);
+
     layout.addWidget(&fitsWidget);
-    layout.addWidget(&stretchBtn);
+    layout.addLayout(&bottomLayout);
 
     setCentralWidget(&mainPane);
 
@@ -30,6 +36,8 @@ MainWindow::MainWindow(QWidget *parent)
                      this, &MainWindow::fitsFileChanged);
     QObject::connect(&fitsWidget, &FITSWidget::fileFailed,
                      this, &MainWindow::fitsFileFailed);
+    QObject::connect(&fitsWidget, &FITSWidget::zoomChanged,
+                     this, &MainWindow::fitsZoomChanged);
     QObject::connect(&stretchBtn, &QPushButton::toggled,
                      this, &MainWindow::stretchToggled);
     QObject::connect(this, &MainWindow::toggleStretched,
@@ -52,7 +60,7 @@ MainWindow::MainWindow(QWidget *parent)
         }
         else
         {
-            fprintf(stderr, "Whoa, buddy, file or no file and that's it. What's all this extra shit?\n");
+            fprintf(stderr, "You confused me with all those arguments\n");
             fflush(stderr);
         }
     }
@@ -76,6 +84,14 @@ void MainWindow::fitsFileFailed(const char *filename,
                                 const char *errText)
 {
     printf("File failed [%s]: %s\n", errText, filename);
+}
+
+void MainWindow::fitsZoomChanged(float zoom)
+{
+    char tmp[10];
+
+    sprintf(tmp, "%.1f%%", zoom * 100);
+    currentZoom.setText(tmp);
 }
 
 void MainWindow::stretchToggled(bool isChecked)

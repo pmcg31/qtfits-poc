@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
 
@@ -30,17 +31,19 @@ private:
     void fitsFileChanged(const char *filename);
     void fitsFileFailed(const char *filename,
                         const char *errText);
+    void fitsZoomChanged(float zoom);
 
     void stretchToggled(bool isChecked);
 
 private:
     QWidget mainPane;
     QVBoxLayout layout;
-    QLabel label;
     FITSWidget fitsWidget;
     QIcon onIcon;
     QIcon offIcon;
+    QHBoxLayout bottomLayout;
     QPushButton stretchBtn;
     bool showingStretched;
+    QLabel currentZoom;
 };
 #endif // MAINWINDOW_H
